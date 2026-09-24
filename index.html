@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>The Contemporary World - Reader</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: #090a0f; color: #ffffff; }
+        
+        .modal-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; background: radial-gradient(circle at 50% 40%, #1e1b4b 0%, #090a0f 85%); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: rgba(12, 14, 20, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.08); height: 52px; z-index: 50; }
+        .modal-title { font-size: 15px; font-weight: 600; color: #ffffff; display: flex; align-items: center; gap: 10px; }
+        .modal-title::before { content: ''; display: inline-block; width: 8px; height: 8px; background: #6366f1; border-radius: 50%; box-shadow: 0 0 12px #6366f1; }
+        
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .back-btn { background: rgba(255, 255, 255, 0.08); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); padding: 6px 14px; border-radius: 18px; text-decoration: none; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+        .back-btn:hover { background: rgba(239, 68, 68, 0.25); color: #ef4444; border-color: rgba(239, 68, 68, 0.4); }
+
+        .modal-body { flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; touch-action: none; }
+        #loading { position: absolute; color: #ffffff; font-size: 15px; font-weight: 600; background: rgba(15, 16, 21, 0.8); padding: 16px 28px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        
+        .spinner { width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .zoom-viewport { transition: transform 0.05s ease-out; transform-origin: center center; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; cursor: grab; }
+        .zoom-viewport:active { cursor: grabbing; }
+        .flipbook-wrapper { background: transparent; }
+        
+        .page { background-color: #fcfbf9; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.3); }
+        .page.--left::after { content: ''; position: absolute; top: 0; right: 0; width: 45px; height: 100%; background: linear-gradient(to left, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0) 100%); pointer-events: none; z-index: 5; }
+        .page.--right::after { content: ''; position: absolute; top: 0; left: 0; width: 45px; height: 100%; background: linear-gradient(to right, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0) 100%); pointer-events: none; z-index: 5; }
+        .page::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.08); pointer-events: none; z-index: 4; }
+
+        .page-number-printed { position: absolute; bottom: 14px; font-family: 'Georgia', serif; font-size: 13px; font-weight: 500; color: #333333; z-index: 10; pointer-events: none; user-select: none; }
+        .page.--left .page-number-printed { left: 20px; }
+        .page.--right .page-number-printed { right: 20px; }
+
+        canvas.page-canvas { width: 100% !important; height: 100% !important; object-fit: contain; }
+
+        .controls { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(15, 16, 21, 0.9); padding: 8px 18px; border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.15); z-index: 100; backdrop-filter: blur(16px); flex-wrap: wrap; justify-content: center; }
+        .btn { background: rgba(255, 255, 255, 0.08); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, 0.12); padding: 6px 14px; border-radius: 18px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s, border-color 0.2s; }
+        .btn:hover { background: #6366f1; color: #ffffff; border-color: #6366f1; }
+        .btn-zoom { background: transparent; border: none; padding: 6px 8px; }
+
+        .search-wrapper { position: relative; display: flex; align-items: center; }
+        .search-container { display: flex; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 18px; padding: 2px 8px; }
+        .search-input { background: transparent; border: none; color: #ffffff; font-size: 12px; outline: none; width: 110px; padding: 4px; }
+        .search-input::placeholder { color: #94a3b8; }
+        .search-btn { background: #6366f1; color: #ffffff; border: none; border-radius: 12px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-weight: 600; }
+        .search-btn:hover { background: #4f46e5; }
+
+        .search-results-dropdown { position: absolute; bottom: 50px; left: 0; width: 260px; max-height: 220px; background: rgba(15, 16, 21, 0.95); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8); backdrop-filter: blur(16px); overflow-y: auto; display: none; z-index: 200; padding: 6px; }
+        .search-results-dropdown.active { display: block; }
+        .search-result-item { padding: 8px 12px; font-size: 12px; color: #cbd5e1; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .search-result-item:hover { background: rgba(99, 102, 241, 0.25); color: #ffffff; }
+        .search-result-item span { background: #6366f1; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 600; }
+
+        .page-control-group { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #94a3b8; }
+        .page-input { width: 38px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #ffffff; text-align: center; border-radius: 6px; padding: 3px 0; font-size: 12px; font-weight: 600; outline: none; }
+        .divider { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.18); margin: 0 4px; }
+    </style>
+    <!-- PDF.js and PageFlip Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+</head>
+<body>
+
+    <div class="modal-container">
+        <div class="modal-header">
+            <span class="modal-title">The Contemporary World</span>
+            <div class="header-actions">
+                <button class="btn" id="fullscreen-btn">⛶ Fullscreen</button>
+            </div>
+        </div>
+        
+        <div class="modal-body" id="modal-body">
+            <div id="loading">
+                <div class="spinner"></div>
+                <span id="loading-text">Loading book reader & pages...</span>
+            </div>
+            
+            <div class="zoom-viewport" id="zoom-viewport">
+                <div id="book" class="flipbook-wrapper" style="display:none;"></div>
+            </div>
+
+            <div class="controls" id="controls" style="display: none;">
+                <button class="btn" id="prev-btn">‹ Prev</button>
+                
+                <div class="page-control-group">
+                    <input type="text" id="page-input" class="page-input" value="1" />
+                    <span id="page-total">/ 0</span>
+                </div>
+
+                <button class="btn" id="next-btn">Next ›</button>
+                
+                <div class="divider"></div>
+
+                <div class="search-wrapper">
+                    <div class="search-container">
+                        <input type="text" id="search-input" class="search-input" placeholder="Search word..." />
+                        <button class="search-btn" id="search-btn">Find</button>
+                    </div>
+                    <div class="search-results-dropdown" id="search-results"></div>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <button class="btn btn-zoom" id="zoom-out">− Zoom</button>
+                <span id="zoom-val" style="font-size: 12px; color: #f1f5f9; min-width:36px; text-align: center;">100%</span>
+                <button class="btn btn-zoom" id="zoom-in">+ Zoom</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        const pdfUrl = 'THE-CONTEMPORARY-WORLD.pdf';
+        let pageFlip = null;
+        let totalPdfPages = 0;
+        let currentZoom = 1.0;
+        let panX = 0, panY = 0;
+        let pdfTextContent = [];
+
+        const pageInput = document.getElementById('page-input');
+        const pageTotal = document.getElementById('page-total');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const searchResultsDropdown = document.getElementById('search-results');
+        const zoomViewport = document.getElementById('zoom-viewport');
+        const zoomValSpan = document.getElementById('zoom-val');
+        const loadingText = document.getElementById('loading-text');
+
+        async function initReader() {
+            const loadingEl = document.getElementById('loading');
+            const bookContainer = document.getElementById('book');
+            const controlsEl = document.getElementById('controls');
+            const modalBody = document.getElementById('modal-body');
+
+            try {
+                loadingText.innerText = "Opening PDF file...";
+                const loadingTask = pdfjsLib.getDocument(pdfUrl);
+                const pdf = await loadingTask.promise;
+                totalPdfPages = pdf.numPages;
+                pageTotal.innerText = `/ ${totalPdfPages}`;
+
+                const isMobile = window.innerWidth < 768;
+                const availableHeight = modalBody.clientHeight - 90;
+                const targetHeight = Math.max(availableHeight, 400);
+                
+                const firstPage = await pdf.getPage(1);
+                const originalViewport = firstPage.getViewport({ scale: 1.0 });
+                const targetWidth = (originalViewport.width / originalViewport.height) * targetHeight;
+
+                for (let i = 1; i <= totalPdfPages; i++) {
+                    loadingText.innerText = `Loading page ${i} of ${totalPdfPages}...`;
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    pdfTextContent[i] = textContent.items.map(item => item.str).join(' ').toLowerCase();
+
+                    const viewport = page.getViewport({ scale: 2.0 }); 
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'page-canvas';
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = `page ${i % 2 === 0 ? '--left' : '--right'}`;
+                    pageDiv.appendChild(canvas);
+
+                    const pageNumDisplay = document.createElement('div');
+                    pageNumDisplay.className = 'page-number-printed';
+                    pageNumDisplay.innerText = i;
+                    pageDiv.appendChild(pageNumDisplay);
+
+                    bookContainer.appendChild(pageDiv);
+                }
+
+                loadingText.innerText = "Preparing book flip animation...";
+                
+                pageFlip = new St.PageFlip(bookContainer, {
+                    width: targetWidth,
+                    height: targetHeight,
+                    size: isMobile ? 'fixed' : 'stretch',
+                    minWidth: 150,
+                    maxWidth: 1000,
+                    minHeight: 250,
+                    maxHeight: 1400,
+                    maxShadowOpacity: 0.7,
+                    showCover: false,
+                    drawShadow: true,
+                    flippingTime: 400,
+                    usePortrait: isMobile,
+                    mobileScrollSupport: false 
+                });
+
+                pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+                
+                loadingEl.style.display = 'none';
+                bookContainer.style.display = 'block';
+                controlsEl.style.display = 'flex';
+                pageInput.value = 1;
+
+                pageFlip.on('flip', (e) => {
+                    pageInput.value = e.data + 1;
+                });
+
+            } catch (err) {
+                loadingEl.innerHTML = '<span style="color: #ef4444;">Error: Could not open the PDF file. Please ensure "THE-CONTEMPORARY-WORLD.pdf" is in the same folder.</span>';
+                console.error(err);
+            }
+        }
+
+        // ==========================================
+        // TOUCH & MOUSE PAN & PINCH-TO-ZOOM HANDLERS
+        // ==========================================
+        let initialDistance = null;
+        let initialZoom = 1.0;
+        let isDragging = false;
+        let startX = 0, startY = 0;
+
+        zoomViewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                isDragging = false;
+                initialDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialZoom = currentZoom;
+            } else if (e.touches.length === 1 && currentZoom > 1.0) {
+                isDragging = true;
+                startX = e.touches[0].clientX - panX;
+                startY = e.touches[0].clientY - panY;
+            }
+        }, { passive: true });
+
+        zoomViewport.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialDistance !== null) {
+                let currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                let scaleFactor = currentDistance / initialDistance;
+                // Pinahintulutan ang zoom-out hanggang 0.2 (20%) at zoom-in hanggang 3.5 (350%)
+                currentZoom = Math.min(Math.max(initialZoom * scaleFactor, 0.2), 3.5);
+                if (currentZoom === 1.0) { panX = 0; panY = 0; }
+                updateTransform();
+            } else if (e.touches.length === 1 && isDragging && currentZoom > 1.0) {
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                updateTransform();
+            }
+        }, { passive: true });
+
+        zoomViewport.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                initialDistance = null;
+            }
+            if (e.touches.length === 0) {
+                isDragging = false;
+            }
+        });
+
+        // Mouse Dragging para sa PC/Laptop kapag naka-zoom in (> 1.0)
+        zoomViewport.addEventListener('mousedown', (e) => {
+            if (currentZoom > 1.0) {
+                isDragging = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging || currentZoom <= 1.0) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        function performSearch() {
+            const query = searchInput.value.trim().toLowerCase();
+            searchResultsDropdown.innerHTML = '';
+            
+            if (!query) {
+                searchResultsDropdown.classList.remove('active');
+                return;
+            }
+
+            let matches = [];
+            for (let i = 1; i <= totalPdfPages; i++) {
+                if (pdfTextContent[i] && pdfTextContent[i].includes(query)) {
+                    matches.push(i);
+                }
+            }
+
+            if (matches.length > 0) {
+                searchResultsDropdown.classList.add('active');
+                matches.forEach(pageNum => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.innerHTML = `<span>Page ${pageNum}</span> Match found`;
+                    item.addEventListener('click', () => {
+                        pageFlip.flip(pageNum - 1);
+                        pageInput.value = pageNum;
+                        searchResultsDropdown.classList.remove('active');
+                    });
+                    searchResultsDropdown.appendChild(item);
+                });
+            } else {
+                searchResultsDropdown.classList.add('active');
+                const noItem = document.createElement('div');
+                noItem.className = 'search-result-item';
+                noItem.style.justifyContent = 'center';
+                noItem.style.color = '#94a3b8';
+                noItem.innerText = `No results for "${query}"`;
+                searchResultsDropdown.appendChild(noItem);
+            }
+        }
+
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('input', performSearch);
+        searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') performSearch(); });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrapper')) {
+                searchResultsDropdown.classList.remove('active');
+            }
+        });
+
+        function updateTransform() {
+            zoomViewport.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+            zoomValSpan.innerText = `${Math.round(currentZoom * 100)}%`;
+        }
+
+        // Zoom In Button (+ Zoom)
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            if (currentZoom < 3.5) { 
+                currentZoom = Math.min(currentZoom + 0.2, 3.5); 
+                updateTransform(); 
+            }
+        });
+
+        // Zoom Out Button (− Zoom) - Pinayagan nang bumaba hanggang 20% (0.2)
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            if (currentZoom > 0.2) { 
+                currentZoom = Math.max(currentZoom - 0.2, 0.2); 
+                if (currentZoom === 1.0) { 
+                    panX = 0; 
+                    panY = 0; 
+                } 
+                updateTransform(); 
+            }
+        });
+
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        });
+
+        document.getElementById('prev-btn').addEventListener('click', () => pageFlip && pageFlip.flipPrev());
+        document.getElementById('next-btn').addEventListener('click', () => pageFlip && pageFlip.flipNext());
+
+        pageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                let targetPage = parseInt(pageInput.value);
+                let maxPages = pageFlip ? pageFlip.getPageCount() : totalPdfPages;
+                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= maxPages) {
+                    pageFlip.flip(targetPage - 1);
+                } else {
+                    pageInput.value = (pageFlip ? pageFlip.getCurrentPageIndex() + 1 : 1);
+                }
+            }
+        });
+
+        initReader();
+    </script>
+</body>
+</html>
