@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>The Contemporary World - Reader</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: #090a0f; color: #ffffff; transition: background 0.3s, color 0.3s; }
+
+        /* Feature 4: Theme Customization (Dark, Light, Sepia) */
+        :root {
+            --bg-gradient: radial-gradient(circle at 50% 40%, #1e1b4b 0%, #090a0f 85%);
+            --header-bg: rgba(12, 14, 20, 0.85);
+            --header-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --controls-bg: rgba(15, 16, 21, 0.9);
+            --controls-border: rgba(255, 255, 255, 0.15);
+            --btn-bg: rgba(255, 255, 255, 0.08);
+            --btn-border: rgba(255, 255, 255, 0.12);
+            --panel-bg: #12141c;
+        }
+        [data-theme="light"] {
+            --bg-gradient: radial-gradient(circle at 50% 40%, #e2e8f0 0%, #cbd5e1 85%);
+            --header-bg: rgba(241, 245, 249, 0.9);
+            --header-border: rgba(0, 0, 0, 0.08);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --controls-bg: rgba(241, 245, 249, 0.9);
+            --controls-border: rgba(0, 0, 0, 0.15);
+            --btn-bg: rgba(0, 0, 0, 0.05);
+            --btn-border: rgba(0, 0, 0, 0.12);
+            --panel-bg: #ffffff;
+        }
+        [data-theme="sepia"] {
+            --bg-gradient: radial-gradient(circle at 50% 40%, #f4ecd8 0%, #e3d5b8 85%);
+            --header-bg: rgba(244, 236, 216, 0.9);
+            --header-border: rgba(92, 64, 51, 0.15);
+            --text-main: #5c4033;
+            --text-muted: #7c5c47;
+            --controls-bg: rgba(244, 236, 216, 0.9);
+            --controls-border: rgba(92, 64, 51, 0.2);
+            --btn-bg: rgba(92, 64, 51, 0.08);
+            --btn-border: rgba(92, 64, 51, 0.2);
+            --panel-bg: #faf0e6;
+        }
+
+        .modal-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; background: var(--bg-gradient); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: var(--header-bg); border-bottom: 1px solid var(--header-border); height: 52px; z-index: 50; }
+        .modal-title { font-size: 15px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+        .modal-title::before { content: ''; display: inline-block; width: 8px; height: 8px; background: #6366f1; border-radius: 50%; box-shadow: 0 0 12px #6366f1; }
+
+        .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        
+        .modal-body { flex: 1; width: 100%; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; touch-action: none; }
+        
+        /* Feature 6: Progress Bar sa Loading Screen */
+        #loading { position: absolute; color: var(--text-main); font-size: 15px; font-weight: 600; background: var(--controls-bg); padding: 20px 32px; border-radius: 20px; border: 1px solid var(--controls-border); backdrop-filter: blur(8px); z-index: 100; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 320px; }
+        .progress-bar-container { width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden; }
+        .progress-bar-fill { width: 0%; height: 100%; background: #6366f1; transition: width 0.2s ease; }
+
+        .zoom-viewport { transition: transform 0.05s ease-out; transform-origin: center center; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; cursor: grab; }
+        .zoom-viewport:active { cursor: grabbing; }
+        .flipbook-wrapper { background: transparent; }
+
+        .page { background-color: #fcfbf9; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.3); cursor: zoom-in; }
+        .page.--left::after { content: ''; position: absolute; top: 0; right: 0; width: 45px; height: 100%; background: linear-gradient(to left, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0) 100%); pointer-events: none; z-index: 5; }
+        .page.--right::after { content: ''; position: absolute; top: 0; left: 0; width: 45px; height: 100%; background: linear-gradient(to right, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0) 100%); pointer-events: none; z-index: 5; }
+        .page::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.08); pointer-events: none; z-index: 4; }
+
+        .page-number-printed { position: absolute; bottom: 14px; font-family: 'Georgia', serif; font-size: 13px; font-weight: 500; color: #333333; z-index: 10; pointer-events: none; user-select: none; }
+        .page.--left .page-number-printed { left: 20px; }
+        .page.--right .page-number-printed { right: 20px; }
+
+        canvas.page-canvas { width: 100% !important; height: 100% !important; object-fit: contain; }
+
+        /* Feature 5: Text Layer para sa Text Selection at Copy Mode */
+        .textLayer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow: hidden; opacity: 0; line-height: 1.0; pointer-events: none; z-index: 8; }
+        .textLayer.active-select { pointer-events: auto; opacity: 1; }
+        .textLayer span { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+        .textLayer span::selection { background: rgba(99, 102, 241, 0.35); }
+
+        /* Feature 1: Sidebar para sa Table of Contents */
+        .sidebar { position: fixed; top: 0; left: 0; width: 280px; height: 100vh; background: var(--panel-bg); border-right: 1px solid var(--header-border); z-index: 200; transform: translateX(-100%); transition: transform 0.3s ease; display: flex; flex-direction: column; box-shadow: 5px 0 25px rgba(0,0,0,0.5); }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--header-border); font-weight: 600; color: var(--text-main); }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+        .toc-item { padding: 10px 12px; border-radius: 8px; background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main); font-size: 13px; cursor: pointer; text-align: left; transition: background 0.2s; }
+        .toc-item:hover { background: #6366f1; color: #ffffff; border-color: #6366f1; }
+
+        /* Full-Page Lightbox Modal with Scroll/Drag Support */
+        .image-lightbox-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5, 6, 10, 0.92); backdrop-filter: blur(8px); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; padding: 20px; opacity: 0; transition: opacity 0.3s ease; }
+        .image-lightbox-modal.active { display: flex; opacity: 1; }
+        
+        .lightbox-container { position: relative; width: 100%; height: 85vh; display: flex; justify-content: center; align-items: center; overflow: hidden; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: grab; }
+        .lightbox-container:active { cursor: grabbing; }
+        
+        .image-lightbox-content { max-width: 90%; max-height: 90%; object-fit: contain; display: block; transform-origin: center center; transition: transform 0.05s ease-out; user-select: none; pointer-events: none; }
+
+        .lightbox-close-btn { position: absolute; top: 20px; right: 25px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background 0.2s; z-index: 1010; }
+        .lightbox-close-btn:hover { background: #ef4444; border-color: #ef4444; }
+
+        .lightbox-caption { margin-top: 12px; font-size: 13px; color: #94a3b8; font-weight: 500; text-align: center; }
+
+        .controls { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: var(--controls-bg); padding: 8px 18px; border-radius: 30px; border: 1px solid var(--controls-border); z-index: 100; backdrop-filter: blur(16px); flex-wrap: wrap; justify-content: center; }
+        .btn { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border); padding: 6px 14px; border-radius: 18px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s, border-color 0.2s; }
+        .btn:hover { background: #6366f1; color: #ffffff; border-color: #6366f1; }
+        .btn-zoom { background: transparent; border: none; padding: 6px 8px; color: var(--text-main); }
+        .btn-clear { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); display: none; }
+        .btn-clear:hover { background: #ef4444; color: #ffffff; }
+
+        /* PDF-style Search Bar Styling */
+        .pdf-search-box { display: flex; align-items: center; background: var(--btn-bg); border: 1px solid var(--btn-border); border-radius: 18px; padding: 2px 8px; gap: 4px; }
+        .pdf-search-input { background: transparent; border: none; color: var(--text-main); font-size: 12px; outline: none; width: 110px; padding: 4px; }
+        .pdf-search-input::placeholder { color: var(--text-muted); }
+        .pdf-search-count { font-size: 11px; color: var(--text-muted); min-width: 42px; text-align: center; user-select: none; }
+        .pdf-search-nav-btn { background: transparent; border: none; color: var(--text-main); font-size: 13px; cursor: pointer; padding: 2px 5px; border-radius: 4px; transition: background 0.2s; }
+        .pdf-search-nav-btn:hover { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+        .pdf-search-nav-btn:disabled { color: #475569; cursor: not-allowed; background: transparent; }
+
+        .page-control-group { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); }
+        .page-input { width: 38px; background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main); text-align: center; border-radius: 6px; padding: 3px 0; font-size: 12px; font-weight: 600; outline: none; }
+        .divider { width: 1px; height: 18px; background: var(--controls-border); margin: 0 4px; }
+    </style>
+    <!-- PDF.js and PageFlip Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+</head>
+<body>
+
+    <!-- Feature 1: Table of Contents Sidebar -->
+    <div class="sidebar" id="toc-sidebar">
+        <div class="sidebar-header">
+            <span>📑 Table of Contents</span>
+            <button class="btn" id="sidebar-close-btn" style="padding: 4px 10px;">✕</button>
+        </div>
+        <div class="sidebar-content" id="toc-list">
+            <!-- Dynamic TOC items will be injected here -->
+        </div>
+    </div>
+
+    <div class="modal-container">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <!-- Button to Open TOC Sidebar -->
+                <button class="btn" id="toc-toggle-btn" title="Table of Contents">☰ TOC</button>
+                <span class="modal-title">The Contemporary World</span>
+            </div>
+            <div class="header-actions">
+                <!-- Feature 5: Toggle Text Selection & Copy Mode -->
+                <button class="btn" id="text-select-toggle" title="Enable text highlighting and copying">🔤 Text Select: OFF</button>
+                <!-- Feature 4: Theme Selector Dropdown -->
+                <select id="theme-selector" class="btn" style="padding: 6px 10px; cursor: pointer;">
+                    <option value="dark">🌙 Dark</option>
+                    <option value="light">☀️ Light</option>
+                    <option value="sepia">📜 Sepia</option>
+                </select>
+                <!-- Feature 2: Manual Bookmark Button -->
+                <button class="btn" id="bookmark-btn" title="Save current page">🔖 Bookmark</button>
+                <button class="btn" id="fullscreen-btn">⛶ Fullscreen</button>
+            </div>
+        </div>
+
+        <div class="modal-body" id="modal-body">
+            <!-- Feature 6: Smooth Loading Screen with Progress Bar -->
+            <div id="loading">
+                <div class="spinner" style="width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <span id="loading-text">Loading PDF file...</span>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <div class="zoom-viewport" id="zoom-viewport">
+                <div id="book" class="flipbook-wrapper" style="display:none;"></div>
+            </div>
+
+            <div class="controls" id="controls" style="display: none;">
+                <button class="btn" id="prev-btn">‹ Prev</button>
+
+                <div class="page-control-group">
+                    <input type="text" id="page-input" class="page-input" value="1" />
+                    <span id="page-total">/ 0</span>
+                </div>
+
+                <button class="btn" id="next-btn">Next ›</button>
+
+                <div class="divider"></div>
+
+                <!-- PDF-style Search Bar Widget -->
+                <div class="pdf-search-box">
+                    <input type="text" id="search-input" class="pdf-search-input" placeholder="Find in document... (Ctrl+F)" />
+                    <span id="search-count" class="pdf-search-count">0/0</span>
+                    <button class="pdf-search-nav-btn" id="search-prev" title="Previous Match" disabled>▲</button>
+                    <button class="pdf-search-nav-btn" id="search-next" title="Next Match" disabled>▼</button>
+                </div>
+
+                <button class="btn btn-clear" id="clear-highlight-btn">Clear Highlight</button>
+
+                <div class="divider"></div>
+
+                <button class="btn btn-zoom" id="zoom-out">− Zoom</button>
+                <span id="zoom-val" style="font-size: 12px; color: var(--text-main); min-width:36px; text-align: center;">100%</span>
+                <button class="btn btn-zoom" id="zoom-in">+ Zoom</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal Element with Pan & Scroll Zoom -->
+    <div class="image-lightbox-modal" id="lightbox-modal">
+        <button class="lightbox-close-btn" id="lightbox-close">&times;</button>
+        <div class="lightbox-container" id="lightbox-container">
+            <img class="image-lightbox-content" id="lightbox-img" alt="Enlarged Full Page" />
+        </div>
+        <div class="lightbox-caption" id="lightbox-caption">Page 1</div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        const pdfUrl = 'THE-CONTEMPORARY-WORLD.pdf';
+        let pdfDoc = null;
+        let pageFlip = null;
+        let totalPdfPages = 0;
+        let currentZoom = 1.0;
+        let panX = 0, panY = 0;
+        let pdfTextContent = [];
+        let canvasElements = {}; 
+
+        let searchMatches = []; 
+        let currentMatchIndex = -1;
+        let isTextSelectActive = false;
+
+        const pageInput = document.getElementById('page-input');
+        const pageTotal = document.getElementById('page-total');
+        const searchInput = document.getElementById('search-input');
+        const searchCountSpan = document.getElementById('search-count');
+        const searchPrevBtn = document.getElementById('search-prev');
+        const searchNextBtn = document.getElementById('search-next');
+        const clearHighlightBtn = document.getElementById('clear-highlight-btn');
+        const zoomViewport = document.getElementById('zoom-viewport');
+        const zoomValSpan = document.getElementById('zoom-val');
+        const loadingText = document.getElementById('loading-text');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+
+        const lightboxModal = document.getElementById('lightbox-modal');
+        const lightboxContainer = document.getElementById('lightbox-container');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxClose = document.getElementById('lightbox-close');
+        const lightboxCaption = document.getElementById('lightbox-caption');
+
+        // Feature 4: Theme Selector Implementation
+        const themeSelector = document.getElementById('theme-selector');
+        const savedTheme = localStorage.getItem('reader_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        themeSelector.value = savedTheme;
+
+        themeSelector.addEventListener('change', (e) => {
+            const selectedTheme = e.target.value;
+            document.documentElement.setAttribute('data-theme', selectedTheme);
+            localStorage.setItem('reader_theme', selectedTheme);
+        });
+
+        // Lightbox Zoom & Pan Variables
+        let lbZoom = 1.0;
+        let lbPanX = 0;
+        let lbPanY = 0;
+        let lbIsDragging = false;
+        let lbStartX = 0;
+        let lbStartY = 0;
+
+        async function initReader() {
+            const loadingEl = document.getElementById('loading');
+            const bookContainer = document.getElementById('book');
+            const controlsEl = document.getElementById('controls');
+            const modalBody = document.getElementById('modal-body');
+
+            try {
+                loadingText.innerText = "Opening PDF file...";
+                progressBarFill.style.width = "10%";
+
+                const loadingTask = pdfjsLib.getDocument(pdfUrl);
+                
+                // Track download progress for Feature 6
+                loadingTask.onProgress = function(progressData) {
+                    if (progressData.total > 0) {
+                        const percent = Math.round((progressData.loaded / progressData.total) * 40);
+                        progressBarFill.style.width = percent + '%';
+                        loadingText.innerText = `Downloading PDF... (${Math.round((progressData.loaded / progressData.total) * 100)}%)`;
+                    }
+                };
+
+                pdfDoc = await loadingTask.promise;
+                totalPdfPages = pdfDoc.numPages;
+                pageTotal.innerText = `/ ${totalPdfPages}`;
+
+                const isMobile = window.innerWidth < 768;
+                const availableHeight = modalBody.clientHeight - 90;
+                const targetHeight = Math.max(availableHeight, 400);
+
+                const firstPage = await pdfDoc.getPage(1);
+                const originalViewport = firstPage.getViewport({ scale: 1.0 });
+                const targetWidth = (originalViewport.width / originalViewport.height) * targetHeight;
+
+                let tocListHTML = '';
+
+                for (let i = 1; i <= totalPdfPages; i++) {
+                    const renderPercent = 40 + Math.round((i / totalPdfPages) * 60);
+                    progressBarFill.style.width = renderPercent + '%';
+                    loadingText.innerText = `Rendering page ${i} of ${totalPdfPages}...`;
+
+                    const page = await pdfDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    pdfTextContent[i] = textContent;
+
+                    const viewport = page.getViewport({ scale: 2.0 }); 
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'page-canvas';
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                    canvasElements[i] = {
+                        canvas: canvas,
+                        context: context,
+                        page: page,
+                        viewport: viewport,
+                        originalImage: context.getImageData(0, 0, canvas.width, canvas.height)
+                    };
+
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = `page ${i % 2 === 0 ? '--left' : '--right'}`;
+                    pageDiv.appendChild(canvas);
+
+                    // Feature 5: Transparent Text Layer for Highlighting & Copying Text
+                    const textLayerDiv = document.createElement('div');
+                    textLayerDiv.className = 'textLayer';
+                    textLayerDiv.id = `text-layer-${i}`;
+                    pageDiv.appendChild(textLayerDiv);
+
+                    // Render PDF.js Text Content into Text Layer
+                    pdfjsLib.renderTextLayer({
+                        textContent: textContent,
+                        container: textLayerDiv,
+                        viewport: viewport,
+                        textDivs: []
+                    });
+
+                    // OPEN LIGHTBOX WITH FULL PAGE & RESET ZOOM
+                         pageDiv.addEventListener('click', (e) => {
+                        // Huwag magbukas ng lightbox kung naka-ON ang text select mode
+                        if (isTextSelectActive) return;
+
+                        const fullPageDataUrl = canvas.toDataURL('image/png');
+                        lightboxImg.src = fullPageDataUrl;
+                        lightboxCaption.innerText = `Page ${i} of ${totalPdfPages}`;
+            
+                        lbZoom = 1.0;
+                        lbPanX = 0;
+                        lbPanY = 0;
+                        updateLightboxTransform();
+            
+                        lightboxModal.classList.add('active');
+                     });
+
+                    const pageNumDisplay = document.createElement('div');
+                    pageNumDisplay.className = 'page-number-printed';
+                    pageNumDisplay.innerText = i;
+                    pageDiv.appendChild(pageNumDisplay);
+
+                    bookContainer.appendChild(pageDiv);
+
+                    // Feature 1: Populate TOC Sidebar (Gumawa ng jump link bawat 5 pahina o sa bawat pahina kung nais)
+                    if (i === 1 || i % 5 === 0 || i === totalPdfPages) {
+                        tocListHTML += `<button class="toc-item" onclick="jumpToPage(${i})">Page ${i}</button>`;
+                    }
+                }
+
+                document.getElementById('toc-list').innerHTML = tocListHTML;
+
+                loadingText.innerText = "Preparing book flip animation...";
+                progressBarFill.style.width = "100%";
+
+                pageFlip = new St.PageFlip(bookContainer, {
+                    width: targetWidth,
+                    height: targetHeight,
+                    size: isMobile ? 'fixed' : 'stretch',
+                    minWidth: 150,
+                    maxWidth: 1000,
+                    minHeight: 250,
+                    maxHeight: 1400,
+                    maxShadowOpacity: 0.7,
+                    showCover: false,
+                    drawShadow: true,
+                    flippingTime: 400,
+                    usePortrait: isMobile,
+                    mobileScrollSupport: false 
+                });
+
+                pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+
+                loadingEl.style.display = 'none';
+                bookContainer.style.display = 'block';
+                controlsEl.style.display = 'flex';
+
+                // Feature 2: Auto-load saved bookmark page from LocalStorage
+                const savedPage = localStorage.getItem('contemporary_world_saved_page');
+                if (savedPage !== null) {
+                    const targetIdx = parseInt(savedPage);
+                    if (!isNaN(targetIdx) && targetIdx >= 0 && targetIdx < totalPdfPages) {
+                        pageFlip.flip(targetIdx);
+                        pageInput.value = targetIdx + 1;
+                    } else {
+                        pageInput.value = 1;
+                    }
+                } else {
+                    pageInput.value = 1;
+                }
+
+                pageFlip.on('flip', (e) => {
+                    const currentPageNum = e.data + 1;
+                    pageInput.value = currentPageNum;
+                    // Feature 2: Auto-save huling binasang pahina
+                    localStorage.setItem('contemporary_world_saved_page', e.data);
+                });
+
+            } catch (err) {
+                loadingEl.innerHTML = '<span style="color: #ef4444;">Error: Could not open the PDF file. Please ensure "THE-CONTEMPORARY-WORLD.pdf" is in the same folder.</span>';
+                console.error(err);
+            }
+        }
+
+        // Feature 1: TOC Sidebar Open/Close Logic
+        const tocSidebar = document.getElementById('toc-sidebar');
+        document.getElementById('toc-toggle-btn').addEventListener('click', () => {
+            tocSidebar.classList.toggle('open');
+        });
+        document.getElementById('sidebar-close-btn').addEventListener('click', () => {
+            tocSidebar.classList.remove('open');
+        });
+
+        function jumpToPage(pageNum) {
+            if (pageFlip) {
+                pageFlip.flip(pageNum - 1);
+                tocSidebar.classList.remove('open');
+            }
+        }
+
+        // Feature 2: Manual Bookmark Button Logic
+        const bookmarkBtn = document.getElementById('bookmark-btn');
+        bookmarkBtn.addEventListener('click', () => {
+            if (pageFlip) {
+                const currentIdx = pageFlip.getCurrentPageIndex();
+                localStorage.setItem('contemporary_world_saved_page', currentIdx);
+                bookmarkBtn.innerText = '📌 Bookmarked!';
+                setTimeout(() => { bookmarkBtn.innerText = '🔖 Bookmark'; }, 2000);
+            }
+        });
+
+        // Feature 5: Text Selection Toggle Logic
+        const textSelectToggle = document.getElementById('text-select-toggle');
+        textSelectToggle.addEventListener('click', () => {
+            isTextSelectActive = !isTextSelectActive;
+            const textLayers = document.querySelectorAll('.textLayer');
+            
+            if (isTextSelectActive) {
+                textLayers.forEach(layer => layer.classList.add('active-select'));
+                textSelectToggle.innerText = '🔤 Text Select: ON';
+                textSelectToggle.style.background = '#6366f1';
+                textSelectToggle.style.color = '#ffffff';
+            } else {
+                textLayers.forEach(layer => layer.classList.remove('active-select'));
+                textSelectToggle.innerText = '🔤 Text Select: OFF';
+                textSelectToggle.style.background = '';
+                textSelectToggle.style.color = '';
+            }
+        });
+
+        // Feature 3: Keyboard Shortcuts Navigation (Arrow keys, Space, Ctrl+F)
+        document.addEventListener('keydown', (e) => {
+            // Huwag gagana kung may tinatype sa input field maliban sa Ctrl+F
+            if (document.activeElement.tagName === 'INPUT' && e.key !== 'f' && e.key !== 'F') return;
+
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                pageFlip && pageFlip.flipNext();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                pageFlip && pageFlip.flipPrev();
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+
+        // LIGHTBOX ZOOM & DRAG LOGIC
+        function updateLightboxTransform() {
+            lightboxImg.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbZoom})`;
+        }
+
+        lightboxContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomIntensity = 0.15;
+            if (e.deltaY < 0) {
+                lbZoom = Math.min(lbZoom + zoomIntensity, 4.0);
+            } else {
+                lbZoom = Math.max(lbZoom - zoomIntensity, 1.0);
+                if (lbZoom === 1.0) { lbPanX = 0; lbPanY = 0; }
+            }
+            updateLightboxTransform();
+        }, { passive: false });
+
+        lightboxContainer.addEventListener('mousedown', (e) => {
+            if (lbZoom > 1.0) {
+                lbIsDragging = true;
+                lbStartX = e.clientX - lbPanX;
+                lbStartY = e.clientY - lbPanY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!lbIsDragging || lbZoom <= 1.0) return;
+            lbPanX = e.clientX - lbStartX;
+            lbPanY = e.clientY - lbStartY;
+            updateLightboxTransform();
+        });
+
+        window.addEventListener('mouseup', () => { lbIsDragging = false; });
+
+        let lbInitialDist = null;
+        let lbInitialZoom = 1.0;
+
+        lightboxContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                lbIsDragging = false;
+                lbInitialDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                lbInitialZoom = lbZoom;
+            } else if (e.touches.length === 1 && lbZoom > 1.0) {
+                lbIsDragging = true;
+                lbStartX = e.touches[0].clientX - lbPanX;
+                lbStartY = e.touches[0].clientY - lbPanY;
+            }
+        }, { passive: true });
+
+        lightboxContainer.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && lbInitialDist !== null) {
+                let currentDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                let scaleFactor = currentDist / lbInitialDist;
+                lbZoom = Math.min(Math.max(lbInitialZoom * scaleFactor, 1.0), 4.0);
+                if (lbZoom === 1.0) { lbPanX = 0; lbPanY = 0; }
+                updateLightboxTransform();
+            } else if (e.touches.length === 1 && lbIsDragging && lbZoom > 1.0) {
+                lbPanX = e.touches[0].clientX - lbStartX;
+                lbPanY = e.touches[0].clientY - lbStartY;
+                updateLightboxTransform();
+            }
+        }, { passive: true });
+
+        lightboxContainer.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) lbInitialDist = null;
+            if (e.touches.length === 0) lbIsDragging = false;
+        });
+
+        // EXACT WORD HIGHLIGHTING FUNCTION
+        function updateHighlightsAndNavigate() {
+            Object.keys(canvasElements).forEach(pageNum => {
+                const item = canvasElements[pageNum];
+                item.context.putImageData(item.originalImage, 0, 0);
+            });
+
+            if (searchMatches.length === 0) {
+                searchCountSpan.innerText = "0/0";
+                searchPrevBtn.disabled = true;
+                searchNextBtn.disabled = true;
+                clearHighlightBtn.style.display = 'none';
+                if (pageFlip) pageFlip.update();
+                return;
+            }
+
+            let matchesByPage = {};
+            searchMatches.forEach((m, idx) => {
+                if (!matchesByPage[m.pageNum]) matchesByPage[m.pageNum] = [];
+                matchesByPage[m.pageNum].push({ matchObj: m, index: idx });
+            });
+
+            Object.keys(matchesByPage).forEach(pageNum => {
+                const item = canvasElements[pageNum];
+                item.context.save();
+
+                matchesByPage[pageNum].forEach(entry => {
+                    const m = entry.matchObj;
+                    const isActive = (entry.index === currentMatchIndex);
+
+                    item.context.fillStyle = isActive ? 'rgba(255, 140, 0, 0.65)' : 'rgba(255, 235, 59, 0.45)';
+                    item.context.strokeStyle = isActive ? 'rgba(215, 90, 0, 0.9)' : 'rgba(230, 180, 0, 0.7)';
+                    item.context.lineWidth = isActive ? 2 : 1;
+
+                    const textItem = m.textItem;
+                    const query = m.query;
+                    const fullStr = textItem.str;
+
+                    const tx = pdfjsLib.Util.transform(item.viewport.transform, textItem.transform);
+                    const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
+                    const totalWidth = textItem.width * item.viewport.scale;
+
+                    const lowerStr = fullStr.toLowerCase();
+                    const startIdx = lowerStr.indexOf(query);
+
+                    if (startIdx !== -1) {
+                        const charWidth = totalWidth / fullStr.length;
+                        const offsetX = startIdx * charWidth;
+                        const matchWidth = query.length * charWidth;
+
+                        const x = tx[4] + offsetX;
+                        const y = tx[5] - fontHeight;
+
+                        item.context.fillRect(x, y, matchWidth, fontHeight * 1.2);
+                        item.context.strokeRect(x, y, matchWidth, fontHeight * 1.2);
+                    }
+                });
+
+                item.context.restore();
+            });
+
+            if (pageFlip) pageFlip.update();
+
+            searchCountSpan.innerText = `${currentMatchIndex + 1}/${searchMatches.length}`;
+            searchPrevBtn.disabled = false;
+            searchNextBtn.disabled = false;
+            clearHighlightBtn.style.display = 'block';
+
+            const activeMatch = searchMatches[currentMatchIndex];
+            if (activeMatch) {
+                const targetPageZeroBased = activeMatch.pageNum - 1;
+                if (pageFlip && pageFlip.getCurrentPageIndex() !== targetPageZeroBased) {
+                    pageFlip.flip(targetPageZeroBased);
+                }
+            }
+        }
+
+        function performSearch() {
+            const query = searchInput.value.trim().toLowerCase();
+            searchMatches = [];
+            currentMatchIndex = -1;
+
+            if (!query) {
+                updateHighlightsAndNavigate();
+                return;
+            }
+
+            for (let i = 1; i <= totalPdfPages; i++) {
+                const textContent = pdfTextContent[i];
+                if (!textContent) continue;
+
+                textContent.items.forEach(textItem => {
+                    if (textItem.str.toLowerCase().includes(query)) {
+                        searchMatches.push({
+                            pageNum: i,
+                            textItem: textItem,
+                            query: query
+                        });
+                    }
+                });
+            }
+
+            if (searchMatches.length > 0) {
+                currentMatchIndex = 0;
+            }
+            updateHighlightsAndNavigate();
+        }
+
+        searchNextBtn.addEventListener('click', () => {
+            if (searchMatches.length === 0) return;
+            currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+            updateHighlightsAndNavigate();
+        });
+
+        searchPrevBtn.addEventListener('click', () => {
+            if (searchMatches.length === 0) return;
+            currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+            updateHighlightsAndNavigate();
+        });
+
+        searchInput.addEventListener('input', performSearch);
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (e.shiftKey) {
+                    searchPrevBtn.click();
+                } else {
+                    searchNextBtn.click();
+                }
+            }
+        });
+
+        function clearAllHighlights() {
+            searchMatches = [];
+            currentMatchIndex = -1;
+            searchInput.value = '';
+            updateHighlightsAndNavigate();
+        }
+
+        clearHighlightBtn.addEventListener('click', clearAllHighlights);
+
+        lightboxClose.addEventListener('click', () => {
+            lightboxModal.classList.remove('active');
+        });
+
+        lightboxModal.addEventListener('click', (e) => {
+            if (e.target === lightboxModal) {
+                lightboxModal.classList.remove('active');
+            }
+        });
+
+        let initialDistance = null;
+        let initialZoom = 1.0;
+        let isDragging = false;
+        let startX = 0, startY = 0;
+
+        zoomViewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                isDragging = false;
+                initialDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialZoom = currentZoom;
+            } else if (e.touches.length === 1 && currentZoom > 1.0) {
+                isDragging = true;
+                startX = e.touches[0].clientX - panX;
+                startY = e.touches[0].clientY - panY;
+            }
+        }, { passive: true });
+
+        zoomViewport.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialDistance !== null) {
+                let currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                let scaleFactor = currentDistance / initialDistance;
+                currentZoom = Math.min(Math.max(initialZoom * scaleFactor, 0.2), 3.5);
+                if (currentZoom === 1.0) { panX = 0; panY = 0; }
+                updateTransform();
+            } else if (e.touches.length === 1 && isDragging && currentZoom > 1.0) {
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                updateTransform();
+            }
+        }, { passive: true });
+
+        zoomViewport.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) { initialDistance = null; }
+            if (e.touches.length === 0) { isDragging = false; }
+        });
+
+        zoomViewport.addEventListener('mousedown', (e) => {
+            if (currentZoom > 1.0) {
+                isDragging = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging || currentZoom <= 1.0) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        function updateTransform() {
+            zoomViewport.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+            zoomValSpan.innerText = `${Math.round(currentZoom * 100)}%`;
+        }
+
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            if (currentZoom < 3.5) { currentZoom = Math.min(currentZoom + 0.2, 3.5); updateTransform(); }
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            if (currentZoom > 0.2) { 
+                currentZoom = Math.max(currentZoom - 0.2, 0.2); 
+                if (currentZoom === 1.0) { panX = 0; panY = 0; } 
+                updateTransform(); 
+            }
+        });
+
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        });
+
+        document.getElementById('prev-btn').addEventListener('click', () => pageFlip && pageFlip.flipPrev());
+        document.getElementById('next-btn').addEventListener('click', () => pageFlip && pageFlip.flipNext());
+
+        pageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                let targetPage = parseInt(pageInput.value);
+                let maxPages = pageFlip ? pageFlip.getPageCount() : totalPdfPages;
+                if (!isNaN(targetPage) && targetPage >= 1 && targetPage <= maxPages) {
+                    pageFlip.flip(targetPage - 1);
+                } else {
+                    pageInput.value = (pageFlip ? pageFlip.getCurrentPageIndex() + 1 : 1);
+                }
+            }
+        });
+
+        initReader();
+    </script>
+</body>
+</html>
